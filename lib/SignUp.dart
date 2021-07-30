@@ -1,5 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:project/HomePage.dart';
+
+enum MobileVerificationState {
+  SHOW_MOBILE_FORM_STATE, //shows registration form
+  SHOW_OTP_FORM_STATE, //shows OTP form
+}
+
 
 class SignUp extends StatefulWidget {
   @override
@@ -10,7 +17,7 @@ class _SignUpState extends State<SignUp> {
   FirebaseAuth _auth = FirebaseAuth.instance;
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
-  String _name, _email, _password;
+  String _name, _email, _password, _phone, _otp;
 
   checkAuthentication() async {
     _auth.authStateChanges().listen((user) async {
@@ -24,6 +31,9 @@ class _SignUpState extends State<SignUp> {
   void initState() {
     super.initState();
     this.checkAuthentication();
+  }
+  navigateToHomePage() async {
+    Navigator.push(context, MaterialPageRoute(builder: (context) => HomePage()));
   }
 
   signUp() async {
@@ -65,11 +75,14 @@ class _SignUpState extends State<SignUp> {
           );
         });
   }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-        body: SingleChildScrollView(
+  MobileVerificationState currentState = MobileVerificationState.SHOW_MOBILE_FORM_STATE;
+  final otpController = TextEditingController();
+  final phoneController = TextEditingController();
+  String verificationId;
+  bool showLoading = false; 
+  getMobileFormWidget(context)
+  {
+   return SingleChildScrollView(
       child: Container(
         child: Column(
           children: <Widget>[
@@ -119,20 +132,80 @@ class _SignUpState extends State<SignUp> {
                           obscureText: true,
                           onSaved: (input) => _password = input),
                     ),
+
+                    Container(
+                      child: TextFormField(
+                          controller: phoneController,
+                          validator: (input) {
+                            if (input.length < 11)
+                              return 'Provide Minimum 11 digits';
+                          },
+                          decoration: InputDecoration(
+                            labelText: 'Phone Number',
+                            prefixIcon: Icon(Icons.phone),
+              
+                          ),
+                          obscureText: false,
+                          onSaved: (input) => _phone = input),
+                    ),
+
                     SizedBox(height: 20),
-                    RaisedButton(
-                      padding: EdgeInsets.fromLTRB(70, 10, 70, 10),
-                      onPressed: signUp,
-                      child: Text('SignUp',
-                          style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 20.0,
-                              fontWeight: FontWeight.bold)),
-                      color: Colors.orange,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20.0),
+                    SizedBox(
+                      width: 200,
+                      height: 50,
+                        child:  ElevatedButton(onPressed: () async{
+
+                          setState(() {
+                            showLoading = true;
+                          });
+                                                  
+                          await _auth.verifyPhoneNumber(phoneNumber: phoneController.text, 
+                          
+                          verificationCompleted: (PhoneAuthCredential) async{
+                            setState(() {
+                             showLoading = false;  
+                            });
+                          
+
+
+                          },
+                          verificationFailed: (verificationFailed) async{
+                            showError(verificationFailed.message);
+                            setState(() {
+                             showLoading = false;  
+                            });
+                          },
+                          codeSent: (verificationId, resendingToken) async{
+                         
+                            setState(() {
+                              currentState = MobileVerificationState.SHOW_OTP_FORM_STATE;
+                              build(context);
+                              
+                              this.verificationId = verificationId;
+                              showLoading = false; 
+                            });
+           
+                          }, 
+                          codeAutoRetrievalTimeout: (verificationId) async{
+
+                          },
+                        );
+                        },
+                        style: ElevatedButton.styleFrom(elevation: 10,
+
+                            shape: new RoundedRectangleBorder(
+                              borderRadius: new BorderRadius.circular(30.0),
+                                side: BorderSide(color: Colors.red),
+                                ),
+
+                                  primary: Color.fromRGBO(231, 0, 44, 32),
+                                ),
+                               child: Text('Send'.toUpperCase(),
+                               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                            )
+                         ),
                       ),
-                    )
+                    
                   ],
                 ),
               ),
@@ -140,6 +213,72 @@ class _SignUpState extends State<SignUp> {
           ],
         ),
       ),
-    ));
+    );
+  }
+
+
+
+  getOtpFormWidget(context)
+  {
+    Container(
+      child: TextFormField(
+      controller: otpController,
+        decoration: InputDecoration(
+        labelText: 'OTP',
+        prefixIcon: Icon(Icons.confirmation_number),
+
+    ),
+      obscureText: false,
+      onSaved: (input) => _otp = input),
+    );
+
+  SizedBox(height: 20);
+  SizedBox(
+      width: 200,
+      height: 50,
+      child:  ElevatedButton(onPressed: () async{
+        PhoneAuthCredential phoneAuthCredential = PhoneAuthProvider.credential(verificationId: verificationId, smsCode: otpController.text);
+      }, 
+      style: ElevatedButton.styleFrom(elevation: 10,
+
+       shape: new RoundedRectangleBorder(
+       borderRadius: new BorderRadius.circular(30.0),
+       side: BorderSide(color: Colors.red),
+    ),
+
+     primary: Color.fromRGBO(231, 0, 44, 32),
+    ),
+     child: Text('Register'.toUpperCase(),
+     style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+    )
+    ),
+  );
+  }
+
+
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+        body: Container(
+          child: currentState == MobileVerificationState.SHOW_MOBILE_FORM_STATE ?  //is the form updated? 
+                
+          getMobileFormWidget(context) :
+          getOtpFormWidget(context),
+        )
+
+    );
   }
 }
+
+
+
+
+
+
+
+
+
+
+
+       

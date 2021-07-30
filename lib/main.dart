@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:project/SignUp.dart';
 import 'package:project/landingPage.dart';
+import 'package:project/otp.dart';
 import 'HomePage.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'Login.dart';
@@ -10,7 +11,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
    runApp(MyApp());
-   }
+  }
 
 class MyApp extends StatelessWidget {
   @override
@@ -28,6 +29,7 @@ class MyApp extends StatelessWidget {
       'Login' : (context) => Login(),
       'SignUp' : (context) => SignUp(),
       'HomePage' : (context) => HomePage(),
+      'OTP' : (context) => OTP(),
     }
       
     );
