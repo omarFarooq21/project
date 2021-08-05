@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:project/HomePage.dart';
 
-enum MobileVerificationState {
+/* enum MobileVerificationState {
   SHOW_MOBILE_FORM_STATE, //shows registration form
   SHOW_OTP_FORM_STATE, //shows OTP form
 }
-
+ */
 
 class SignUp extends StatefulWidget {
   @override
@@ -36,20 +36,18 @@ class _SignUpState extends State<SignUp> {
     Navigator.push(context, MaterialPageRoute(builder: (context) => HomePage()));
   }
 
+
   signUp() async {
     if (_formKey.currentState.validate()) {
       _formKey.currentState.save();
 
       try {
-        UserCredential user = await _auth.createUserWithEmailAndPassword(
-            email: _email, password: _password);
+        dynamic user = await _auth.createUserWithEmailAndPassword(email: _email, password: _password);
+            
         if (user != null) {
-          // UserUpdateInfo updateuser = UserUpdateInfo();
-          // updateuser.displayName = _name;
-          //  user.updateProfile(updateuser);
-          await _auth.currentUser.updateProfile(displayName: _name);
-          // await Navigator.pushReplacementNamed(context,"/") ;
-
+          await _auth.currentUser.updateDisplayName(_name);
+          _auth.signInWithPhoneNumber(_phone);
+          navigateToHomePage();
         }
       } catch (e) {
         showError(e.message);
@@ -75,7 +73,7 @@ class _SignUpState extends State<SignUp> {
           );
         });
   }
-  MobileVerificationState currentState = MobileVerificationState.SHOW_MOBILE_FORM_STATE;
+  //MobileVerificationState currentState = MobileVerificationState.SHOW_MOBILE_FORM_STATE;
   final otpController = TextEditingController();
   final phoneController = TextEditingController();
   String verificationId;
@@ -159,15 +157,13 @@ class _SignUpState extends State<SignUp> {
                             showLoading = true;
                           });
                                                   
-                          await _auth.verifyPhoneNumber(phoneNumber: phoneController.text, 
+                          await _auth.verifyPhoneNumber(
+                          
+                          phoneNumber: phoneController.text, 
                           
                           verificationCompleted: (PhoneAuthCredential) async{
-                            setState(() {
-                             showLoading = false;  
-                            });
-                          
-
-
+                            Navigator.of(context).pop();
+                            SignUp();
                           },
                           verificationFailed: (verificationFailed) async{
                             showError(verificationFailed.message);
@@ -176,18 +172,47 @@ class _SignUpState extends State<SignUp> {
                             });
                           },
                           codeSent: (verificationId, resendingToken) async{
-                         
-                            setState(() {
-                              currentState = MobileVerificationState.SHOW_OTP_FORM_STATE;
-                              build(context);
-                              
-                              this.verificationId = verificationId;
+
+                            showDialog(context: context, 
+                            builder: (context) 
+                            {
+                              return AlertDialog(
+                                title: Text(
+                                  "Verification Code: ",
+                                ),
+                                content: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: <Widget>[
+                                    TextField(
+                                      controller: otpController,
+                                    ),
+                                  
+                                  ],
+                                ),
+                                actions: <Widget> [
+                                  ElevatedButton(
+                                    onPressed: () async{
+                                      final code = otpController.text.trim();
+          
+                                      PhoneAuthCredential phoneAuthCredential = PhoneAuthProvider.credential(verificationId: verificationId, smsCode: code);
+                                      
+                                
+                                    }, 
+                                    child: Text("Confirm"),
+                                     ),
+                                ]
+                              );
+                            }
+                            );
+
+                            setState(() {                     
+              
                               showLoading = false; 
-                            });
-           
+                            }); 
                           }, 
                           codeAutoRetrievalTimeout: (verificationId) async{
-
+                              _otp = verificationId;
+                              showLoading = false; 
                           },
                         );
                         },
@@ -216,57 +241,10 @@ class _SignUpState extends State<SignUp> {
     );
   }
 
-
-
-  getOtpFormWidget(context)
-  {
-    Container(
-      child: TextFormField(
-      controller: otpController,
-        decoration: InputDecoration(
-        labelText: 'OTP',
-        prefixIcon: Icon(Icons.confirmation_number),
-
-    ),
-      obscureText: false,
-      onSaved: (input) => _otp = input),
-    );
-
-  SizedBox(height: 20);
-  SizedBox(
-      width: 200,
-      height: 50,
-      child:  ElevatedButton(onPressed: () async{
-        PhoneAuthCredential phoneAuthCredential = PhoneAuthProvider.credential(verificationId: verificationId, smsCode: otpController.text);
-      }, 
-      style: ElevatedButton.styleFrom(elevation: 10,
-
-       shape: new RoundedRectangleBorder(
-       borderRadius: new BorderRadius.circular(30.0),
-       side: BorderSide(color: Colors.red),
-    ),
-
-     primary: Color.fromRGBO(231, 0, 44, 32),
-    ),
-     child: Text('Register'.toUpperCase(),
-     style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-    )
-    ),
-  );
-  }
-
-
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        body: Container(
-          child: currentState == MobileVerificationState.SHOW_MOBILE_FORM_STATE ?  //is the form updated? 
-                
-          getMobileFormWidget(context) :
-          getOtpFormWidget(context),
-        )
-
+        body: getMobileFormWidget(context),
     );
   }
 }
