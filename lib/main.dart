@@ -10,7 +10,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
    runApp(MyApp());
-   }
+  }
 
 class MyApp extends StatelessWidget {
   @override
@@ -28,6 +28,7 @@ class MyApp extends StatelessWidget {
       'Login' : (context) => Login(),
       'SignUp' : (context) => SignUp(),
       'HomePage' : (context) => HomePage(),
+
     }
       
     );
