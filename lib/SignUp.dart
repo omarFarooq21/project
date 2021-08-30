@@ -55,6 +55,7 @@ class _SignUpState extends State<SignUp> {
       }
     }
   }
+//temp
 
   showError(String errormessage) {
     showDialog(
@@ -73,6 +74,10 @@ class _SignUpState extends State<SignUp> {
           );
         });
   }
+
+
+    
+    
   //MobileVerificationState currentState = MobileVerificationState.SHOW_MOBILE_FORM_STATE;
   final otpController = TextEditingController();
   final phoneController = TextEditingController();
@@ -195,11 +200,19 @@ class _SignUpState extends State<SignUp> {
                                       final code = otpController.text.trim();
           
                                       PhoneAuthCredential phoneAuthCredential = PhoneAuthProvider.credential(verificationId: verificationId, smsCode: code);
-                                      
-                                
-                                    }, 
+                                      try {
+                                          final authCredential = await _auth.signInWithCredential(phoneAuthCredential);
+                                        if(authCredential?.user != null){
+                                          signUp();
+                                        }
+
+                                        } catch (e) {
+                                          showError(e.toString());
+                                        }
+                                                                    
+                                      }, 
                                     child: Text("Confirm"),
-                                     ),
+                                    ),
                                 ]
                               );
                             }
